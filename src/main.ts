@@ -111,9 +111,10 @@ function handleStroke(layer: Layer, node: MinimalStrokesMixin) {
 
 function handleFill(layer: Layer, node: MinimalFillsMixin) {
   const fillColor = (layer.paint as any)["fill-color"];
+  const fillOpacity = (layer.paint as any)["fill-opacity"];
   if (fillColor) {
     const { a, ...rgb } = fillColor;
-    node.fills = [{ type: "SOLID", color: rgb }];
+    node.fills = [{ type: "SOLID", color: rgb, opacity: fillOpacity }];
   }
 }
 
@@ -173,7 +174,8 @@ function createLayers(
   features: MapboxGeoJSONFeature[]
 ): BaseNode[] {
   const layerGroups = groupBy(features, (d) => d.layer.id);
-  return Object.entries(layerGroups).map(([layerId, layerFeatures]) => {
+  const result: BaseNode[] = [];
+  Object.entries(layerGroups).forEach(([layerId, layerFeatures]) => {
     const objectNodes: BaseNode[] = [];
     layerFeatures.forEach((feature) => {
       if (
@@ -185,14 +187,20 @@ function createLayers(
       }
       objectNodes.push(createObject(tileOrigin, feature));
     });
+    if (!objectNodes.length) {
+      return;
+    }
     const layerNode = figma.group(objectNodes, figma.currentPage);
     layerNode.name = layerId;
-    return layerNode;
+    layerNode.expanded = false;
+    result.push(layerNode);
   });
+  return result;
 }
 
 export default function () {
   on("CLONE", (tile: number[], features: MapboxGeoJSONFeature[]) => {
+    console.log(features);
     const bbox = tileToBBOX(tile);
     const tileOrigin = [bbox[0], bbox[3]];
     const [startX, startY] = px(tileOrigin);
@@ -206,6 +214,7 @@ export default function () {
       [...layerNodes, boundsNode],
       figma.currentPage
     );
+    tileNode.expanded = false;
     tileNode.name = tile.join("/");
   });
 

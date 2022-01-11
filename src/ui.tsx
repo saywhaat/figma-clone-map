@@ -35,19 +35,13 @@ function Plugin() {
         Math.floor(map.getZoom())
       );
       const features = map
-        .queryRenderedFeatures(undefined, {
-          layers: [
-            "water",
-            "contour-line",
-            "road-secondary-tertiary",
-            "road-motorway-trunk",
-          ],
-        })
+        .queryRenderedFeatures()
         .filter((d: any) => {
           const { _x, _y, _z } = d._vectorTileFeature;
           return _x === x && _y === y && _z === z;
         })
         .map((d: any) => d.toJSON());
+
       emit("CLONE", [x, y, z], features);
     });
   }, []);
